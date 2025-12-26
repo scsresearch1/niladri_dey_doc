@@ -1,0 +1,45 @@
+.App {
+  min-height: 100vh;
+  background-color: #ffffff;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #ffffff;
+}
+
+.loading-spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #2563eb;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Scientific theme colors */
+:root {
+  --primary-blue: #2563eb;
+  --primary-blue-dark: #1e40af;
+  --secondary-blue: #3b82f6;
+  --accent-blue: #60a5fa;
+  --light-blue: #dbeafe;
+  --dark-gray: #1a1a1a;
+  --medium-gray: #4b5563;
+  --light-gray: #f3f4f6;
+  --border-gray: #e5e7eb;
+  --success-green: #10b981;
+  --warning-orange: #f59e0b;
+  --white: #ffffff;
+}
+

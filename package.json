@@ -1,0 +1,24 @@
+{
+  "name": "phd-load-balancing-implementation",
+  "version": "1.0.0",
+  "description": "A Cost Effective and Power Aware Load Balancing Strategy for Cloud using Genetic Optimization & Machine Learning",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd backend && npm run dev",
+    "client": "cd frontend && npm start",
+    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+  },
+  "keywords": [
+    "load-balancing",
+    "cloud-computing",
+    "genetic-algorithm",
+    "machine-learning"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+

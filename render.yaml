@@ -1,0 +1,19 @@
+# Render configuration for backend deployment
+services:
+  - type: web
+    name: phd-load-balancing-backend
+    env: node
+    plan: starter
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+    healthCheckPath: /api/health
+    disk:
+      name: dataset-disk
+      mountPath: /opt/render/project/src/backend/dataset
+      sizeGB: 5
+

@@ -1,0 +1,161 @@
+.phase-card {
+  background-color: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: 12px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.phase-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.12);
+  border-color: var(--primary-blue);
+}
+
+.phase-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.phase-number {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Roboto Slab', serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--white);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.phase-status {
+  padding: 0.375rem 0.875rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.phase-card-title {
+  font-family: 'Roboto Slab', serif;
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--dark-gray);
+  margin-bottom: 1rem;
+  line-height: 1.4;
+}
+
+.phase-card-description {
+  font-size: 0.9375rem;
+  color: var(--medium-gray);
+  line-height: 1.7;
+  margin-bottom: 1.5rem;
+  flex-grow: 1;
+}
+
+.phase-outcomes {
+  margin-bottom: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-gray);
+}
+
+.outcomes-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--dark-gray);
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.outcomes-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.outcome-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--medium-gray);
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.outcome-item:last-child {
+  margin-bottom: 0;
+}
+
+.outcome-icon {
+  color: var(--success-green);
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.phase-card-footer {
+  margin-top: auto;
+  padding-top: 1rem;
+}
+
+.phase-button {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--white);
+  border: 2px solid var(--primary-blue);
+  border-radius: 8px;
+  color: var(--primary-blue);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.phase-button:hover {
+  background-color: var(--primary-blue);
+  color: var(--white);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.phase-button svg {
+  transition: transform 0.3s ease;
+}
+
+.phase-button:hover svg {
+  transform: translateX(2px);
+}
+
+@media (max-width: 768px) {
+  .phase-card {
+    padding: 1.5rem;
+  }
+  
+  .phase-card-title {
+    font-size: 1.25rem;
+  }
+  
+  .phase-number {
+    width: 40px;
+    height: 40px;
+    font-size: 1.25rem;
+  }
+}
+

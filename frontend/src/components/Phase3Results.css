@@ -1,0 +1,241 @@
+.phase3-results-container {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.phase3-results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.phase3-results-header h3 {
+  margin: 0;
+  color: var(--primary-blue);
+  font-size: 1.5rem;
+}
+
+.phase3-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.phase3-controls label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  color: var(--dark-gray);
+}
+
+.phase3-controls select {
+  padding: 0.5rem;
+  border: 1px solid var(--light-gray);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: white;
+}
+
+.run-algorithms-btn {
+  padding: 0.75rem 1.5rem;
+  background: var(--primary-blue);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.run-algorithms-btn:hover:not(:disabled) {
+  background: var(--primary-blue-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.run-algorithms-btn:disabled {
+  background: var(--medium-gray);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.phase3-info {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  margin-top: 1rem;
+}
+
+.phase3-info p {
+  margin: 0 0 0.5rem 0;
+  color: var(--dark-gray);
+}
+
+.phase3-info ul {
+  margin: 0.5rem 0 0 0;
+  padding-left: 1.5rem;
+}
+
+.phase3-info li {
+  margin: 0.5rem 0;
+  color: var(--medium-gray);
+  line-height: 1.6;
+}
+
+.phase3-loading {
+  text-align: center;
+  padding: 3rem;
+  color: var(--medium-gray);
+}
+
+.loading-spinner {
+  border: 4px solid var(--light-gray);
+  border-top: 4px solid var(--primary-blue);
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-note {
+  font-size: 0.9rem;
+  color: var(--medium-gray);
+  margin-top: 0.5rem;
+}
+
+.phase3-error {
+  padding: 1.5rem;
+  background: #fee;
+  border: 1px solid #fcc;
+  border-radius: 6px;
+  color: #c33;
+  margin: 1rem 0;
+}
+
+.phase3-error h4 {
+  margin: 0 0 0.5rem 0;
+}
+
+.phase3-error button {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: #c33;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.phase3-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+.chart-container {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chart-container h4 {
+  margin: 0 0 1rem 0;
+  color: var(--primary-blue);
+  font-size: 1.2rem;
+}
+
+.phase3-table-container {
+  margin-top: 2rem;
+  overflow-x: auto;
+}
+
+.phase3-table-container h4 {
+  margin: 0 0 1rem 0;
+  color: var(--primary-blue);
+  font-size: 1.2rem;
+}
+
+.phase3-results-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.phase3-results-table thead {
+  background: var(--primary-blue);
+  color: white;
+}
+
+.phase3-results-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.phase3-results-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--light-gray);
+  color: var(--dark-gray);
+}
+
+.phase3-results-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.phase3-results-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.min-value-cell {
+  background-color: #d4edda !important;
+  font-weight: 600;
+  color: #155724 !important;
+}
+
+@media (max-width: 768px) {
+  .phase3-results-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .phase3-controls {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .phase3-charts {
+    grid-template-columns: 1fr;
+  }
+
+  .phase3-results-table {
+    font-size: 0.85rem;
+  }
+
+  .phase3-results-table th,
+  .phase3-results-table td {
+    padding: 0.5rem;
+  }
+}
+
