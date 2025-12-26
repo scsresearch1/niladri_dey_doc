@@ -1,9 +1,10 @@
 # Render configuration for backend deployment
+# This file can be used for automatic configuration, but manual setup is also fine
 services:
   - type: web
     name: phd-load-balancing-backend
     env: node
-    plan: starter
+    plan: free  # Change to 'starter' for production ($7/month, no sleep)
     buildCommand: cd backend && npm install
     startCommand: cd backend && npm start
     envVars:
@@ -11,9 +12,12 @@ services:
         value: production
       - key: PORT
         value: 10000
+      - key: FRONTEND_URL
+        value: https://your-app.netlify.app  # UPDATE THIS with your Netlify URL
     healthCheckPath: /api/health
-    disk:
-      name: dataset-disk
-      mountPath: /opt/render/project/src/backend/dataset
-      sizeGB: 5
+    # Optional: Persistent disk for dataset files
+    # disk:
+    #   name: dataset-disk
+    #   mountPath: /opt/render/project/src/backend/dataset
+    #   sizeGB: 5
 
