@@ -34,8 +34,8 @@ lerna-debug.log*
 # OS
 Thumbs.db
 
-# Dataset files (too large for Git - upload separately to hosting service)
-backend/dataset/
+# Dataset files - Using Git LFS for small datasets
+# backend/dataset/  # Commented out - using Git LFS instead
 *.csv
 *.txt
 !backend/dataset/.gitkeep
