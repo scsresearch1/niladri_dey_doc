@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import {
   Chart as ChartJS,
@@ -38,13 +38,6 @@ const AlgorithmResults = ({ phaseId }) => {
   
   // Use processed dates if available, otherwise use all dates
   const dates = processedDates.length > 0 ? processedDates : allDates;
-
-  const dateLabels = dates.map(date => {
-    const year = date.substring(0, 4);
-    const month = date.substring(4, 6);
-    const day = date.substring(6, 8);
-    return `${year}-${month}-${day}`;
-  });
 
   const formatDate = (dateString) => {
     const year = dateString.substring(0, 4);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import './DatasetViewer.css';
 
@@ -9,13 +9,7 @@ const DatasetViewer = ({ date, onClose }) => {
   const [fileContent, setFileContent] = useState(null);
   const [loadingFile, setLoadingFile] = useState(false);
 
-  useEffect(() => {
-    if (date) {
-      fetchFiles();
-    }
-  }, [date]);
-
-  const fetchFiles = async () => {
+  const fetchFiles = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get(`/api/datasets/${date}/files`);
@@ -26,7 +20,13 @@ const DatasetViewer = ({ date, onClose }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [date]);
+
+  useEffect(() => {
+    if (date) {
+      fetchFiles();
+    }
+  }, [date, fetchFiles]);
 
   const fetchFileContent = async (filename) => {
     try {

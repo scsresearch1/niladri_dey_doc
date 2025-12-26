@@ -5,20 +5,18 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
-  LineElement,
   PointElement,
   Title,
   Tooltip,
   Legend
 } from 'chart.js';
-import { Bar, Line } from 'react-chartjs-2';
+import { Bar } from 'react-chartjs-2';
 import './Phase3Results.css';
 
 ChartJS.register(
   CategoryScale,
   LinearScale,
   BarElement,
-  LineElement,
   PointElement,
   Title,
   Tooltip,

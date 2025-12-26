@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState } from 'react';
 import './PhaseDetail.css';
 import DatasetViewer from './DatasetViewer';
 import AlgorithmResults from './AlgorithmResults';
