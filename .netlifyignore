@@ -1,0 +1,18 @@
+# Netlify ignore file - exclude everything except frontend
+# This prevents Netlify from processing these files during build
+
+# Exclude entire backend directory (including datasets)
+backend/
+
+# Exclude dataset files specifically
+backend/dataset/
+
+# Exclude other unnecessary files
+*.md
+!README.md
+.gitattributes
+.gitignore
+render.yaml
+netlify/plugins/
+.netlifyrc
+
