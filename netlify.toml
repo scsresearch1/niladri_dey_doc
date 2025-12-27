@@ -1,11 +1,12 @@
 # Netlify configuration for frontend deployment
 [build]
   # Base directory - only work with frontend (avoids Git LFS dataset files)
+  # When base is set, Netlify automatically changes to this directory
   base = "frontend"
-  # Build command for React app (explicitly cd into frontend directory)
-  command = "cd frontend && npm install && npm run build"
-  # Directory to publish
-  publish = "frontend/build"
+  # Build command - no need to cd since base already sets working directory
+  command = "npm install && npm run build"
+  # Directory to publish (relative to base directory)
+  publish = "build"
   
 [build.environment]
   NODE_VERSION = "18"
