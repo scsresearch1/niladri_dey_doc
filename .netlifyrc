@@ -1,0 +1,11 @@
+{
+  "build": {
+    "command": "npm install && npm run build",
+    "base": "frontend",
+    "publish": "build",
+    "environment": {
+      "GIT_LFS_SKIP_SMUDGE": "1"
+    }
+  }
+}
+

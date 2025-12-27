@@ -2,14 +2,17 @@
 [build]
   # Base directory - only work with frontend (avoids Git LFS dataset files)
   base = "frontend"
-  # Build command for React app
-  command = "npm install && npm run build"
+  # Build command - Skip Git LFS files (not needed for frontend build)
+  # GIT_LFS_SKIP_SMUDGE=1 tells Git LFS to skip downloading files
+  command = "export GIT_LFS_SKIP_SMUDGE=1 && npm install && npm run build"
   # Directory to publish
   publish = "build"
   
 [build.environment]
   NODE_VERSION = "18"
   NPM_FLAGS = "--legacy-peer-deps"
+  # Skip Git LFS file downloads (Netlify doesn't need dataset files)
+  GIT_LFS_SKIP_SMUDGE = "1"
 
 # Redirect all API calls to backend (Render)
 [[redirects]]
