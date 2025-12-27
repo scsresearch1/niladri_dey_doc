@@ -97,8 +97,11 @@ class DatasetDownloader {
 
         // Check content type - Google Drive might return HTML instead of file
         const contentType = response.headers['content-type'] || '';
-        if (contentType.includes('text/html') || url.includes('drive.usercontent.google.com')) {
-            // Google Drive virus scan warning - suggest using Dropbox instead
+        const isGoogleDrive = url.includes('drive.google.com') || url.includes('drive.usercontent.google.com');
+        
+        if (contentType.includes('text/html')) {
+          // Google Drive virus scan warning - suggest using Dropbox instead
+          if (isGoogleDrive) {
             console.log('Google Drive returned HTML (virus scan warning).');
             console.log('⚠️  Recommendation: Use Dropbox for more reliable downloads.');
             console.log('⚠️  Dropbox direct download links work without virus scan warnings.');
