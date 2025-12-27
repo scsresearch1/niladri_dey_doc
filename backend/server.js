@@ -1556,87 +1556,77 @@ app.get('/api/phase3/algorithms', (req, res) => {
 // Phase 4 API Endpoints
 
 // API endpoint to run Phase 4 algorithms and get results
+// API endpoint to run Phase 4 algorithms and get results (serves pre-calculated results)
 app.post('/api/phase4/run-algorithms', async (req, res) => {
+  // Set CORS headers immediately
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.indexOf(origin) !== -1) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  
   try {
-    // Check if dataset directory exists first
-    const datasetPath = path.join(__dirname, 'dataset', 'planetlab');
-    if (!fs.existsSync(datasetPath)) {
-      return res.status(404).json({ 
-        error: 'Dataset directory not found',
-        message: 'Datasets are missing on the server. Please upload datasets to backend/dataset/planetlab/ on Render.',
-        path: datasetPath
-      });
-    }
-
-    const { dates, options } = req.body;
+    const { dates } = req.body;
     
-    // Default dates - ALL dates by default
-    const defaultDates = [
-      '20110303', '20110306', '20110309', '20110322', '20110325',
-      '20110403', '20110409', '20110411', '20110412', '20110420'
-    ];
+    // Load pre-calculated results
+    const resultsPath = path.join(__dirname, 'results', 'phase4-results.json');
     
-    // Process ALL dates by default - NO LIMITATIONS
-    const datesToProcess = dates || defaultDates;
-    
-    // Verify requested dates exist
-    const existingDates = fs.readdirSync(datasetPath).filter(item => {
-      const itemPath = path.join(datasetPath, item);
-      return fs.statSync(itemPath).isDirectory();
-    });
-    
-    const missingDates = datesToProcess.filter(date => !existingDates.includes(date));
-    if (missingDates.length > 0) {
+    if (!fs.existsSync(resultsPath)) {
       return res.status(404).json({
-        error: 'Some dataset dates not found',
-        message: `The following dates are missing: ${missingDates.join(', ')}`,
-        missingDates: missingDates,
-        availableDates: existingDates.sort()
+        success: false,
+        error: 'Pre-calculated results not found',
+        message: 'Results file missing. Please run precalculation script.'
       });
     }
     
-    console.log(`Phase 4: Processing ${datesToProcess.length} dates: ${datesToProcess.join(', ')}`);
+    const preCalculatedData = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
     
-    const orchestrator = new Phase4Orchestrator();
-    
-    // Run all Phase 4 algorithms (multi-threaded)
-    const results = await orchestrator.runAllPhase4Algorithms(datesToProcess, options || {});
-    
-    // Format results for frontend
-    const formattedResults = {
-      balancedPercentage: {},
-      totalMigrations: {},
-      averageUtilization: {},
-      loadCondition: {},
-      totalTasks: {},
-      totalDataCenters: {},
-      loadVariance: {},
-      globalBestFitness: {}
-    };
-    
-    // Organize results by metric
-    Object.keys(results).forEach(date => {
-      const result = results[date];
-      if (result.metrics) {
-        formattedResults.balancedPercentage[date] = result.metrics.balancedPercentage;
-        formattedResults.totalMigrations[date] = result.metrics.totalMigrations;
-        formattedResults.averageUtilization[date] = result.metrics.averageUtilization;
-        formattedResults.loadCondition[date] = result.metrics.loadCondition;
-        formattedResults.totalTasks[date] = result.metrics.totalTasks;
-        formattedResults.totalDataCenters[date] = result.metrics.totalDataCenters;
-        formattedResults.loadVariance[date] = result.metrics.loadVariance;
-        formattedResults.globalBestFitness[date] = result.metrics.globalBestFitness;
-      }
-    });
-    
-    res.json({
-      success: true,
-      results: formattedResults,
-      detailedResults: results,
-      dates: datesToProcess
-    });
+    // Filter by requested dates if provided
+    if (dates && Array.isArray(dates) && dates.length > 0) {
+      const filteredResults = {
+        balancedPercentage: {},
+        averageUtilization: {},
+        loadVariance: {},
+        migrationCount: {},
+        fitnessScore: {}
+      };
+      
+      Object.keys(preCalculatedData.results.balancedPercentage).forEach(algoName => {
+        filteredResults.balancedPercentage[algoName] = {};
+        filteredResults.averageUtilization[algoName] = {};
+        filteredResults.loadVariance[algoName] = {};
+        filteredResults.migrationCount[algoName] = {};
+        filteredResults.fitnessScore[algoName] = {};
+        
+        dates.forEach(date => {
+          if (preCalculatedData.results.balancedPercentage[algoName][date] !== undefined) {
+            filteredResults.balancedPercentage[algoName][date] = preCalculatedData.results.balancedPercentage[algoName][date];
+            filteredResults.averageUtilization[algoName][date] = preCalculatedData.results.averageUtilization[algoName][date];
+            filteredResults.loadVariance[algoName][date] = preCalculatedData.results.loadVariance[algoName][date];
+            filteredResults.migrationCount[algoName][date] = preCalculatedData.results.migrationCount[algoName][date];
+            filteredResults.fitnessScore[algoName][date] = preCalculatedData.results.fitnessScore[algoName][date];
+          }
+        });
+      });
+      
+      res.json({
+        success: true,
+        results: filteredResults,
+        algorithms: preCalculatedData.algorithms,
+        dates: dates,
+        generatedAt: preCalculatedData.generatedAt
+      });
+    } else {
+      res.json({
+        success: true,
+        results: preCalculatedData.results,
+        algorithms: preCalculatedData.algorithms,
+        dates: preCalculatedData.dates,
+        generatedAt: preCalculatedData.generatedAt
+      });
+    }
   } catch (error) {
-    console.error('Error running Phase 4 algorithms:', error);
+    console.error('Error loading pre-calculated results:', error);
     res.status(500).json({
       success: false,
       error: error.message
