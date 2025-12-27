@@ -25,8 +25,30 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 // CORS configuration - allow frontend URL from environment variable
+// Default allowed origins (including Netlify)
+const allowedOrigins = [
+  'https://cloudlb.netlify.app',
+  'http://localhost:3000',
+  'http://localhost:3001'
+];
+
+// Add FRONTEND_URL from environment if set
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*', // Allow all origins in development, restrict in production
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Allow if origin is in allowed list or if FRONTEND_URL is not set (development)
+    if (allowedOrigins.indexOf(origin) !== -1 || !process.env.FRONTEND_URL) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
