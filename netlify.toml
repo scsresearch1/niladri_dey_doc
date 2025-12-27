@@ -2,10 +2,10 @@
 [build]
   # Base directory - only work with frontend (avoids Git LFS dataset files)
   base = "frontend"
-  # Build command for React app
-  command = "npm install && npm run build"
+  # Build command for React app (explicitly cd into frontend directory)
+  command = "cd frontend && npm install && npm run build"
   # Directory to publish
-  publish = "build"
+  publish = "frontend/build"
   
 [build.environment]
   NODE_VERSION = "18"
