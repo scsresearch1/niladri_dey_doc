@@ -4,7 +4,7 @@ import Header from './components/Header';
 import Hero from './components/Hero';
 import Phases from './components/Phases';
 import Footer from './components/Footer';
-import axios from 'axios';
+import api from './config/api';
 
 function App() {
   const [phases, setPhases] = useState([]);
@@ -15,8 +15,8 @@ function App() {
     const fetchData = async () => {
       try {
         const [phasesRes, researchRes] = await Promise.all([
-          axios.get('/api/phases'),
-          axios.get('/api/research-overview')
+          api.get('/api/phases'),
+          api.get('/api/research-overview')
         ]);
         setPhases(phasesRes.data.phases);
         setResearchData(researchRes.data);

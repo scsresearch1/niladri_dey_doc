@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../config/api';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -55,7 +55,7 @@ const Phase2Results = ({ phaseId }) => {
       // Increased timeout for full processing: 30 minutes for all dates, 10 min for partial
       const timeoutDuration = numDatesToProcess >= 10 ? 1800000 : 600000;
       
-      const response = await axios.post('/api/phase2/run-algorithms', { 
+      const response = await api.post('/api/phase2/run-algorithms', { 
         dates: datesToProcess,
         options: {}
       }, {

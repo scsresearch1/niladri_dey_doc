@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../config/api';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -66,7 +66,7 @@ const Phase4Results = ({ phaseId }) => {
 
       console.log(`Phase 4: Running algorithms on ${datesToProcess.length} dates...`);
 
-      const response = await axios.post('/api/phase4/run-algorithms', {
+      const response = await api.post('/api/phase4/run-algorithms', {
         dates: datesToProcess,
         options: {}
       });

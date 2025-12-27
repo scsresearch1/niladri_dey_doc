@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../config/api';
 import './DatasetViewer.css';
 
 const DatasetViewer = ({ date, onClose }) => {
@@ -12,7 +12,7 @@ const DatasetViewer = ({ date, onClose }) => {
   const fetchFiles = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`/api/datasets/${date}/files`);
+      const response = await api.get(`/api/datasets/${date}/files`);
       setFiles(response.data.files || []);
     } catch (error) {
       console.error('Error fetching files:', error);
@@ -31,7 +31,7 @@ const DatasetViewer = ({ date, onClose }) => {
   const fetchFileContent = async (filename) => {
     try {
       setLoadingFile(true);
-      const response = await axios.get(`/api/datasets/${date}/files/${filename}`);
+      const response = await api.get(`/api/datasets/${date}/files/${filename}`);
       setFileContent(response.data);
       setSelectedFile(filename);
     } catch (error) {
