@@ -146,66 +146,19 @@ class DatasetDownloader {
       console.log('unzip command not available, trying Node.js solution...');
     }
 
-    // Fallback: Use Node.js zip library if available
+    // Fallback: Use Node.js zip library (adm-zip)
     try {
-      // Try yauzl (if installed)
-      const yauzl = require('yauzl');
-      const yauzlPromisify = promisify(yauzl.open);
+      const AdmZip = require('adm-zip');
+      const zip = new AdmZip(zipPath);
       
-      return new Promise((resolve, reject) => {
-        yauzlPromisify(zipPath, { lazyEntries: true })
-          .then((zipfile) => {
-            zipfile.readEntry();
-            
-            zipfile.on('entry', (entry) => {
-              if (/\/$/.test(entry.fileName)) {
-                // Directory entry
-                const dirPath = path.join(extractDir, entry.fileName);
-                if (!fs.existsSync(dirPath)) {
-                  fs.mkdirSync(dirPath, { recursive: true });
-                }
-                zipfile.readEntry();
-              } else {
-                // File entry
-                zipfile.openReadStream(entry, (err, readStream) => {
-                  if (err) {
-                    reject(err);
-                    return;
-                  }
-                  
-                  const filePath = path.join(extractDir, entry.fileName);
-                  const fileDir = path.dirname(filePath);
-                  if (!fs.existsSync(fileDir)) {
-                    fs.mkdirSync(fileDir, { recursive: true });
-                  }
-                  
-                  const writeStream = fs.createWriteStream(filePath);
-                  readStream.pipe(writeStream);
-                  
-                  writeStream.on('close', () => {
-                    zipfile.readEntry();
-                  });
-                });
-              }
-            });
-            
-            zipfile.on('end', () => {
-              console.log('Extraction complete using yauzl');
-              resolve();
-            });
-            
-            zipfile.on('error', reject);
-          })
-          .catch((err) => {
-            // If yauzl not available, provide instructions
-            console.error('ERROR: Cannot extract ZIP file automatically.');
-            console.error('Please install unzip or yauzl package.');
-            console.error('Or extract manually and upload to Render.');
-            reject(new Error('ZIP extraction failed. Install unzip or extract manually.'));
-          });
-      });
+      console.log('Extracting using adm-zip...');
+      zip.extractAllTo(extractDir, true);
+      console.log('Extraction complete using adm-zip');
+      return;
     } catch (error) {
-      throw new Error('ZIP extraction failed. Please ensure unzip is available or extract manually.');
+      console.error('ERROR: Cannot extract ZIP file automatically.');
+      console.error('Error:', error.message);
+      throw new Error(`ZIP extraction failed: ${error.message}`);
     }
   }
 
