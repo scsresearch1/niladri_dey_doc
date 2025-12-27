@@ -888,11 +888,8 @@ const Phase3Orchestrator = require('./algorithms/phase3/phase3Orchestrator');
 // Phase 4 Algorithm Execution
 const Phase4Orchestrator = require('./algorithms/phase4/phase4Orchestrator');
 
-// API endpoint to run algorithms and get results
+// API endpoint to run algorithms and get results (serves pre-calculated results)
 app.post('/api/phase1/run-algorithms', async (req, res) => {
-  // Set a longer timeout for this endpoint (5 minutes)
-  req.setTimeout(300000); // 5 minutes
-  
   // Set CORS headers immediately
   const origin = req.headers.origin;
   if (origin && allowedOrigins.indexOf(origin) !== -1) {
@@ -901,98 +898,72 @@ app.post('/api/phase1/run-algorithms', async (req, res) => {
   }
   
   try {
-    const { dates, sampleDates } = req.body;
+    const { dates } = req.body;
     
-    // Check if dataset directory exists first
-    const datasetPath = path.join(__dirname, 'dataset', 'planetlab');
-    if (!fs.existsSync(datasetPath)) {
-      return res.status(404).json({ 
-        error: 'Dataset directory not found',
-        message: 'Datasets are missing on the server. Please upload datasets to backend/dataset/planetlab/ on Render.',
-        path: datasetPath,
-        help: 'See deployment documentation for instructions on uploading datasets to Render.'
-      });
-    }
+    // Load pre-calculated results
+    const resultsPath = path.join(__dirname, 'results', 'phase1-results.json');
     
-    // Default dates - use only requested dates or first 3 for quick test
-    const defaultDates = [
-      '20110303', '20110306', '20110309', '20110322', '20110325',
-      '20110403', '20110409', '20110411', '20110412', '20110420'
-    ];
-    
-    // Use provided dates or default to first 3 for performance
-    const datesToProcess = dates || defaultDates.slice(0, 3);
-    
-    // Verify requested dates exist
-    const existingDates = fs.readdirSync(datasetPath).filter(item => {
-      const itemPath = path.join(datasetPath, item);
-      return fs.statSync(itemPath).isDirectory();
-    });
-    
-    const missingDates = datesToProcess.filter(date => !existingDates.includes(date));
-    if (missingDates.length > 0) {
+    if (!fs.existsSync(resultsPath)) {
       return res.status(404).json({
-        error: 'Some dataset dates not found',
-        message: `The following dates are missing: ${missingDates.join(', ')}`,
-        missingDates: missingDates,
-        availableDates: existingDates.sort(),
-        path: datasetPath
+        success: false,
+        error: 'Pre-calculated results not found',
+        message: 'Results file missing. Please run precalculation script.'
       });
     }
     
-    console.log(`Processing ${datesToProcess.length} dates: ${datesToProcess.join(', ')}`);
-    const loadBalancer = new LoadBalancer();
+    const preCalculatedData = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
     
-    // Add timeout wrapper
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => {
-        reject(new Error('Algorithm execution timed out after 4 minutes. Please try with fewer dates.'));
-      }, 240000); // 4 minutes timeout
-    });
-    
-    // Run all algorithms with timeout protection
-    const algorithmPromise = loadBalancer.runAllAlgorithms(datesToProcess);
-    
-    const results = await Promise.race([algorithmPromise, timeoutPromise]);
-    
-    // Format results for frontend
-    const formattedResults = {
-      energyConsumption: {},
-      vmMigrations: {},
-      slaViolations: {},
-      nodeShutdowns: {},
-      meanTimeBeforeShutdown: {},
-      meanTimeBeforeMigration: {}
-    };
-    
-    // Organize results by metric
-    Object.keys(results).forEach(algoName => {
-      formattedResults.energyConsumption[algoName] = {};
-      formattedResults.vmMigrations[algoName] = {};
-      formattedResults.slaViolations[algoName] = {};
-      formattedResults.nodeShutdowns[algoName] = {};
-      formattedResults.meanTimeBeforeShutdown[algoName] = {};
-      formattedResults.meanTimeBeforeMigration[algoName] = {};
+    // Filter by requested dates if provided
+    if (dates && Array.isArray(dates) && dates.length > 0) {
+      // Filter results to only include requested dates
+      const filteredResults = {
+        energyConsumption: {},
+        vmMigrations: {},
+        slaViolations: {},
+        nodeShutdowns: {},
+        meanTimeBeforeShutdown: {},
+        meanTimeBeforeMigration: {}
+      };
       
-      Object.keys(results[algoName]).forEach(date => {
-        const result = results[algoName][date];
-        formattedResults.energyConsumption[algoName][date] = result.energyConsumption;
-        formattedResults.vmMigrations[algoName][date] = result.vmMigrations;
-        formattedResults.slaViolations[algoName][date] = result.slaViolations;
-        formattedResults.nodeShutdowns[algoName][date] = result.nodeShutdowns;
-        formattedResults.meanTimeBeforeShutdown[algoName][date] = result.meanTimeBeforeShutdown;
-        formattedResults.meanTimeBeforeMigration[algoName][date] = result.meanTimeBeforeMigration;
+      Object.keys(preCalculatedData.results.energyConsumption).forEach(algoName => {
+        filteredResults.energyConsumption[algoName] = {};
+        filteredResults.vmMigrations[algoName] = {};
+        filteredResults.slaViolations[algoName] = {};
+        filteredResults.nodeShutdowns[algoName] = {};
+        filteredResults.meanTimeBeforeShutdown[algoName] = {};
+        filteredResults.meanTimeBeforeMigration[algoName] = {};
+        
+        dates.forEach(date => {
+          if (preCalculatedData.results.energyConsumption[algoName][date] !== undefined) {
+            filteredResults.energyConsumption[algoName][date] = preCalculatedData.results.energyConsumption[algoName][date];
+            filteredResults.vmMigrations[algoName][date] = preCalculatedData.results.vmMigrations[algoName][date];
+            filteredResults.slaViolations[algoName][date] = preCalculatedData.results.slaViolations[algoName][date];
+            filteredResults.nodeShutdowns[algoName][date] = preCalculatedData.results.nodeShutdowns[algoName][date];
+            filteredResults.meanTimeBeforeShutdown[algoName][date] = preCalculatedData.results.meanTimeBeforeShutdown[algoName][date];
+            filteredResults.meanTimeBeforeMigration[algoName][date] = preCalculatedData.results.meanTimeBeforeMigration[algoName][date];
+          }
+        });
       });
-    });
-    
-    res.json({
-      success: true,
-      results: formattedResults,
-      algorithms: Object.keys(results),
-      dates: datesToProcess
-    });
+      
+      res.json({
+        success: true,
+        results: filteredResults,
+        algorithms: preCalculatedData.algorithms,
+        dates: dates,
+        generatedAt: preCalculatedData.generatedAt
+      });
+    } else {
+      // Return all results
+      res.json({
+        success: true,
+        results: preCalculatedData.results,
+        algorithms: preCalculatedData.algorithms,
+        dates: preCalculatedData.dates,
+        generatedAt: preCalculatedData.generatedAt
+      });
+    }
   } catch (error) {
-    console.error('Error running algorithms:', error);
+    console.error('Error loading pre-calculated results:', error);
     
     // Ensure CORS headers on error
     const origin = req.headers.origin;
