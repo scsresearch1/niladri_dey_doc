@@ -10,8 +10,7 @@ import {
   Filler,
   Title,
   Tooltip,
-  Legend,
-  GridLineOptions
+  Legend
 } from 'chart.js';
 import { Bar, Line } from 'react-chartjs-2';
 import './Phase4Results.css';
@@ -53,7 +52,6 @@ const Phase4Results = ({ phaseId }) => {
   const [error, setError] = useState(null);
   const [processedDates, setProcessedDates] = useState([]);
   const [numDatesToProcess, setNumDatesToProcess] = useState(3);
-  const [selectedMetric, setSelectedMetric] = useState('all');
 
   const runAlgorithms = async () => {
     setLoading(true);
@@ -116,6 +114,7 @@ const Phase4Results = ({ phaseId }) => {
   useEffect(() => {
     // Auto-load results when component mounts
     runAlgorithms();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Extract data for charts (handle new structure: results.metricName.algorithmName.date)
