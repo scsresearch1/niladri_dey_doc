@@ -85,11 +85,40 @@ class DatasetDownloader {
         // Check content type - Google Drive might return HTML instead of file
         const contentType = response.headers['content-type'] || '';
         if (contentType.includes('text/html')) {
-          file.close();
-          if (fs.existsSync(destination)) {
-            fs.unlinkSync(destination);
-          }
-          reject(new Error('Google Drive returned HTML instead of file. File might be too large or sharing settings incorrect.'));
+          // Google Drive virus scan warning - need to extract download link from HTML
+          console.log('Google Drive returned HTML (virus scan warning). Extracting download link...');
+          let htmlData = '';
+          
+          response.on('data', (chunk) => {
+            htmlData += chunk.toString();
+          });
+          
+          response.on('end', () => {
+            file.close();
+            if (fs.existsSync(destination)) {
+              fs.unlinkSync(destination);
+            }
+            
+            // Try to extract download link from HTML
+            // Google Drive warning page has a form with action="/uc?export=download&id=..."
+            const downloadMatch = htmlData.match(/action="([^"]*uc\?export=download[^"]*)"/i) ||
+                                  htmlData.match(/href="([^"]*uc\?export=download[^"]*)"/i) ||
+                                  htmlData.match(/\/uc\?export=download[^"'\s]*/i);
+            
+            if (downloadMatch) {
+              let downloadUrl = downloadMatch[1] || downloadMatch[0];
+              // Make absolute URL if relative
+              if (downloadUrl.startsWith('/')) {
+                downloadUrl = 'https://drive.google.com' + downloadUrl;
+              } else if (!downloadUrl.startsWith('http')) {
+                downloadUrl = 'https://drive.google.com/' + downloadUrl;
+              }
+              console.log(`Found download link in HTML: ${downloadUrl}`);
+              return this.downloadFile(downloadUrl, destination, redirectCount + 1).then(resolve).catch(reject);
+            } else {
+              reject(new Error('Google Drive returned HTML warning page but could not extract download link. File may be too large or require manual download.'));
+            }
+          });
           return;
         }
 
