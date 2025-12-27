@@ -43,7 +43,12 @@ class DatasetDownloader {
   /**
    * Download file from URL
    */
-  async downloadFile(url, destination) {
+  async downloadFile(url, destination, redirectCount = 0) {
+    // Prevent infinite redirect loops
+    if (redirectCount > 10) {
+      throw new Error('Too many redirects (max 10)');
+    }
+
     return new Promise((resolve, reject) => {
       const protocol = url.startsWith('https') ? https : http;
       
@@ -54,17 +59,34 @@ class DatasetDownloader {
       let downloadedBytes = 0;
       let totalBytes = 0;
 
-      protocol.get(url, (response) => {
-        // Handle redirects (Google Drive sometimes redirects)
-        if (response.statusCode === 302 || response.statusCode === 301) {
+      // Add User-Agent header to help with Google Drive redirects
+      const options = {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      };
+
+      const req = protocol.get(url, options, (response) => {
+        // Handle redirects (Google Drive uses 301, 302, 303, 307, 308)
+        if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+          file.close();
+          if (fs.existsSync(destination)) {
+            fs.unlinkSync(destination);
+          }
           const redirectUrl = response.headers.location;
-          console.log(`Redirecting to: ${redirectUrl}`);
-          return this.downloadFile(redirectUrl, destination).then(resolve).catch(reject);
+          console.log(`Redirecting (${response.statusCode}) to: ${redirectUrl}`);
+          // Handle relative redirects
+          const fullRedirectUrl = redirectUrl.startsWith('http') 
+            ? redirectUrl 
+            : new URL(redirectUrl, url).href;
+          return this.downloadFile(fullRedirectUrl, destination, redirectCount + 1).then(resolve).catch(reject);
         }
 
         if (response.statusCode !== 200) {
           file.close();
-          fs.unlinkSync(destination);
+          if (fs.existsSync(destination)) {
+            fs.unlinkSync(destination);
+          }
           reject(new Error(`Failed to download: HTTP ${response.statusCode}`));
           return;
         }
@@ -87,13 +109,17 @@ class DatasetDownloader {
           console.log('\nDownload complete!');
           resolve();
         });
-      }).on('error', (error) => {
+      });
+
+      req.on('error', (error) => {
         file.close();
         if (fs.existsSync(destination)) {
           fs.unlinkSync(destination);
         }
         reject(error);
       });
+
+      req.end();
     });
   }
 
