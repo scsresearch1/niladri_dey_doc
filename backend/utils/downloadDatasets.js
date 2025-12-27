@@ -160,15 +160,48 @@ class DatasetDownloader {
     // Fallback: Use Node.js zip library (adm-zip)
     try {
       const AdmZip = require('adm-zip');
-      const zip = new AdmZip(zipPath);
       
-      console.log('Extracting using adm-zip...');
+      // Verify file exists and has content
+      if (!fs.existsSync(zipPath)) {
+        throw new Error(`ZIP file not found: ${zipPath}`);
+      }
+      
+      const zipStats = fs.statSync(zipPath);
+      if (zipStats.size === 0) {
+        throw new Error('ZIP file is empty - download may have failed');
+      }
+      
+      console.log(`Extracting ${(zipStats.size / 1024 / 1024).toFixed(2)} MB ZIP file using adm-zip...`);
+      
+      // Check if file is actually a ZIP (check magic bytes)
+      const zipBuffer = Buffer.alloc(4);
+      const fd = fs.openSync(zipPath, 'r');
+      fs.readSync(fd, zipBuffer, 0, 4, 0);
+      fs.closeSync(fd);
+      
+      // ZIP files start with PK (0x50 0x4B)
+      if (zipBuffer[0] !== 0x50 || zipBuffer[1] !== 0x4B) {
+        // Read first 100 bytes to see what we got
+        const previewBuffer = Buffer.alloc(100);
+        const previewFd = fs.openSync(zipPath, 'r');
+        fs.readSync(previewFd, previewBuffer, 0, 100, 0);
+        fs.closeSync(previewFd);
+        const preview = previewBuffer.toString('utf8', 0, 100);
+        console.error('File preview (first 100 bytes):', preview);
+        throw new Error('Downloaded file is not a valid ZIP file. Google Drive may have returned an error page.');
+      }
+      
+      const zip = new AdmZip(zipPath);
       zip.extractAllTo(extractDir, true);
       console.log('Extraction complete using adm-zip');
       return;
     } catch (error) {
       console.error('ERROR: Cannot extract ZIP file automatically.');
       console.error('Error:', error.message);
+      if (fs.existsSync(zipPath)) {
+        const stats = fs.statSync(zipPath);
+        console.error('ZIP file size:', stats.size, 'bytes');
+      }
       throw new Error(`ZIP extraction failed: ${error.message}`);
     }
   }
