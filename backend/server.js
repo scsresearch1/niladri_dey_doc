@@ -4,6 +4,9 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
+// Import dataset downloader
+const DatasetDownloader = require('./utils/downloadDatasets');
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -686,15 +689,79 @@ app.get('/api/phases', (req, res) => {
   });
 });
 
+// Dataset diagnostic endpoint - check if datasets exist
+app.get('/api/datasets/check', (req, res) => {
+  const datasetPath = path.join(__dirname, 'dataset', 'planetlab');
+  
+  try {
+    const exists = fs.existsSync(datasetPath);
+    if (!exists) {
+      return res.json({
+        exists: false,
+        path: datasetPath,
+        error: 'Dataset directory does not exist',
+        message: 'Datasets need to be uploaded to Render. See deployment documentation.'
+      });
+    }
+
+    const dates = fs.readdirSync(datasetPath).filter(item => {
+      const itemPath = path.join(datasetPath, item);
+      return fs.statSync(itemPath).isDirectory();
+    }).sort();
+
+    const datasetInfo = dates.map(date => {
+      const datePath = path.join(datasetPath, date);
+      const files = fs.readdirSync(datePath);
+      return {
+        date: date,
+        formattedDate: formatDate(date),
+        fileCount: files.length,
+        path: `dataset/planetlab/${date}`
+      };
+    });
+
+    res.json({
+      exists: true,
+      path: datasetPath,
+      totalDates: dates.length,
+      totalFiles: datasetInfo.reduce((sum, d) => sum + d.fileCount, 0),
+      datasets: datasetInfo
+    });
+  } catch (error) {
+    res.json({
+      exists: false,
+      path: datasetPath,
+      error: error.message,
+      message: 'Error checking dataset directory'
+    });
+  }
+});
+
 // Dataset API endpoint
 app.get('/api/datasets', (req, res) => {
   const datasetPath = path.join(__dirname, 'dataset', 'planetlab');
   
   try {
+    if (!fs.existsSync(datasetPath)) {
+      return res.status(404).json({ 
+        error: 'Dataset directory not found',
+        message: 'Datasets need to be uploaded to Render. The dataset directory is missing.',
+        path: datasetPath
+      });
+    }
+
     const dates = fs.readdirSync(datasetPath).filter(item => {
       const itemPath = path.join(datasetPath, item);
       return fs.statSync(itemPath).isDirectory();
     }).sort();
+
+    if (dates.length === 0) {
+      return res.status(404).json({
+        error: 'No dataset dates found',
+        message: 'Dataset directory exists but contains no date folders.',
+        path: datasetPath
+      });
+    }
 
     const datasetInfo = dates.map(date => {
       const datePath = path.join(datasetPath, date);
@@ -715,7 +782,11 @@ app.get('/api/datasets', (req, res) => {
       datasets: datasetInfo
     });
   } catch (error) {
-    res.status(500).json({ error: 'Error reading dataset directory', message: error.message });
+    res.status(500).json({ 
+      error: 'Error reading dataset directory', 
+      message: error.message,
+      path: datasetPath
+    });
   }
 });
 
@@ -744,6 +815,17 @@ app.post('/api/phase1/run-algorithms', async (req, res) => {
   try {
     const { dates, sampleDates } = req.body;
     
+    // Check if dataset directory exists first
+    const datasetPath = path.join(__dirname, 'dataset', 'planetlab');
+    if (!fs.existsSync(datasetPath)) {
+      return res.status(404).json({ 
+        error: 'Dataset directory not found',
+        message: 'Datasets are missing on the server. Please upload datasets to backend/dataset/planetlab/ on Render.',
+        path: datasetPath,
+        help: 'See deployment documentation for instructions on uploading datasets to Render.'
+      });
+    }
+    
     // Default dates - ALL dates by default
     const defaultDates = [
       '20110303', '20110306', '20110309', '20110322', '20110325',
@@ -752,6 +834,24 @@ app.post('/api/phase1/run-algorithms', async (req, res) => {
     
     // Process ALL dates by default - NO LIMITATIONS
     const datesToProcess = dates || defaultDates;
+    
+    // Verify requested dates exist
+    const existingDates = fs.readdirSync(datasetPath).filter(item => {
+      const itemPath = path.join(datasetPath, item);
+      return fs.statSync(itemPath).isDirectory();
+    });
+    
+    const missingDates = datesToProcess.filter(date => !existingDates.includes(date));
+    if (missingDates.length > 0) {
+      return res.status(404).json({
+        error: 'Some dataset dates not found',
+        message: `The following dates are missing: ${missingDates.join(', ')}`,
+        missingDates: missingDates,
+        availableDates: existingDates.sort(),
+        path: datasetPath
+      });
+    }
+    
     console.log(`Processing ${datesToProcess.length} dates: ${datesToProcess.join(', ')}`);
     const loadBalancer = new LoadBalancer();
     
@@ -1132,6 +1232,16 @@ app.get('/api/health', (req, res) => {
 // API endpoint to run Phase 2 algorithms and get results
 app.post('/api/phase2/run-algorithms', async (req, res) => {
   try {
+    // Check if dataset directory exists first
+    const datasetPath = path.join(__dirname, 'dataset', 'planetlab');
+    if (!fs.existsSync(datasetPath)) {
+      return res.status(404).json({ 
+        error: 'Dataset directory not found',
+        message: 'Datasets are missing on the server. Please upload datasets to backend/dataset/planetlab/ on Render.',
+        path: datasetPath
+      });
+    }
+
     const { dates, options } = req.body;
     
     // Default dates - ALL dates by default
@@ -1142,6 +1252,23 @@ app.post('/api/phase2/run-algorithms', async (req, res) => {
     
     // Process ALL dates by default - NO LIMITATIONS
     const datesToProcess = dates || defaultDates;
+    
+    // Verify requested dates exist
+    const existingDates = fs.readdirSync(datasetPath).filter(item => {
+      const itemPath = path.join(datasetPath, item);
+      return fs.statSync(itemPath).isDirectory();
+    });
+    
+    const missingDates = datesToProcess.filter(date => !existingDates.includes(date));
+    if (missingDates.length > 0) {
+      return res.status(404).json({
+        error: 'Some dataset dates not found',
+        message: `The following dates are missing: ${missingDates.join(', ')}`,
+        missingDates: missingDates,
+        availableDates: existingDates.sort()
+      });
+    }
+    
     console.log(`Phase 2: Processing ${datesToProcess.length} dates: ${datesToProcess.join(', ')}`);
     
     const orchestrator = new Phase2Orchestrator();
@@ -1235,6 +1362,16 @@ app.get('/api/phase2/algorithms', (req, res) => {
 // API endpoint to run Phase 3 algorithms and get results
 app.post('/api/phase3/run-algorithms', async (req, res) => {
   try {
+    // Check if dataset directory exists first
+    const datasetPath = path.join(__dirname, 'dataset', 'planetlab');
+    if (!fs.existsSync(datasetPath)) {
+      return res.status(404).json({ 
+        error: 'Dataset directory not found',
+        message: 'Datasets are missing on the server. Please upload datasets to backend/dataset/planetlab/ on Render.',
+        path: datasetPath
+      });
+    }
+
     const { dates, options } = req.body;
     
     // Default dates - ALL dates by default
@@ -1245,6 +1382,23 @@ app.post('/api/phase3/run-algorithms', async (req, res) => {
     
     // Process ALL dates by default - NO LIMITATIONS
     const datesToProcess = dates || defaultDates;
+    
+    // Verify requested dates exist
+    const existingDates = fs.readdirSync(datasetPath).filter(item => {
+      const itemPath = path.join(datasetPath, item);
+      return fs.statSync(itemPath).isDirectory();
+    });
+    
+    const missingDates = datesToProcess.filter(date => !existingDates.includes(date));
+    if (missingDates.length > 0) {
+      return res.status(404).json({
+        error: 'Some dataset dates not found',
+        message: `The following dates are missing: ${missingDates.join(', ')}`,
+        missingDates: missingDates,
+        availableDates: existingDates.sort()
+      });
+    }
+    
     console.log(`Phase 3: Processing ${datesToProcess.length} dates: ${datesToProcess.join(', ')}`);
     
     const orchestrator = new Phase3Orchestrator();
@@ -1348,6 +1502,16 @@ app.get('/api/phase3/algorithms', (req, res) => {
 // API endpoint to run Phase 4 algorithms and get results
 app.post('/api/phase4/run-algorithms', async (req, res) => {
   try {
+    // Check if dataset directory exists first
+    const datasetPath = path.join(__dirname, 'dataset', 'planetlab');
+    if (!fs.existsSync(datasetPath)) {
+      return res.status(404).json({ 
+        error: 'Dataset directory not found',
+        message: 'Datasets are missing on the server. Please upload datasets to backend/dataset/planetlab/ on Render.',
+        path: datasetPath
+      });
+    }
+
     const { dates, options } = req.body;
     
     // Default dates - ALL dates by default
@@ -1358,6 +1522,23 @@ app.post('/api/phase4/run-algorithms', async (req, res) => {
     
     // Process ALL dates by default - NO LIMITATIONS
     const datesToProcess = dates || defaultDates;
+    
+    // Verify requested dates exist
+    const existingDates = fs.readdirSync(datasetPath).filter(item => {
+      const itemPath = path.join(datasetPath, item);
+      return fs.statSync(itemPath).isDirectory();
+    });
+    
+    const missingDates = datesToProcess.filter(date => !existingDates.includes(date));
+    if (missingDates.length > 0) {
+      return res.status(404).json({
+        error: 'Some dataset dates not found',
+        message: `The following dates are missing: ${missingDates.join(', ')}`,
+        missingDates: missingDates,
+        availableDates: existingDates.sort()
+      });
+    }
+    
     console.log(`Phase 4: Processing ${datesToProcess.length} dates: ${datesToProcess.join(', ')}`);
     
     const orchestrator = new Phase4Orchestrator();
@@ -1424,7 +1605,32 @@ app.get('/api/phase4/algorithms', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Initialize server with dataset check
+async function startServer() {
+  // Check and download datasets if needed (non-blocking)
+  const downloader = new DatasetDownloader();
+  downloader.ensureDatasetsExist()
+    .then((success) => {
+      if (success) {
+        console.log('✅ Dataset check completed successfully');
+      } else {
+        console.warn('⚠️  Dataset check completed with warnings. Server will start anyway.');
+        console.warn('⚠️  Some features may not work until datasets are available.');
+      }
+    })
+    .catch((error) => {
+      console.error('❌ Error during dataset check:', error.message);
+      console.warn('⚠️  Server will start anyway, but datasets may not be available.');
+    });
+
+  // Start server immediately (don't wait for dataset download)
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Frontend URL: ${process.env.FRONTEND_URL || 'Not set'}`);
+  });
+}
+
+// Start the server
+startServer();
 
