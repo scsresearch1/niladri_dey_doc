@@ -10,9 +10,17 @@ https://drive.google.com/file/d/1ANFYoFQajJm6pmJz_i71E3i7GS-dVZ_Y/view?usp=shari
 1ANFYoFQajJm6pmJz_i71E3i7GS-dVZ_Y
 ```
 
-## Direct Download Link (Use This!)
+## Direct Download Link (Try These!)
+
+### Option 1: Standard Format
 ```
 https://drive.google.com/uc?export=download&id=1ANFYoFQajJm6pmJz_i71E3i7GS-dVZ_Y
+```
+
+### Option 2: With Confirmation (For Large Files)
+If Option 1 doesn't work, try this:
+```
+https://drive.google.com/uc?export=download&id=1ANFYoFQajJm6pmJz_i71E3i7GS-dVZ_Y&confirm=t
 ```
 
 ---
