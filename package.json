@@ -1,24 +1,16 @@
 {
-  "name": "phd-load-balancing-implementation",
+  "name": "phd-load-balancing",
   "version": "1.0.0",
-  "description": "A Cost Effective and Power Aware Load Balancing Strategy for Cloud using Genetic Optimization & Machine Learning",
-  "main": "index.js",
+  "description": "Multi-phase load balancing research application",
+  "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "server": "cd backend && npm run dev",
-    "client": "cd frontend && npm start",
-    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [
-    "load-balancing",
-    "cloud-computing",
-    "genetic-algorithm",
-    "machine-learning"
-  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/scsresearch1/niladri_dey_doc.git"
+  },
+  "keywords": [],
   "author": "",
-  "license": "MIT",
-  "devDependencies": {
-    "concurrently": "^8.2.2"
-  }
+  "license": "ISC"
 }
-
