@@ -10,12 +10,6 @@
 [build.environment]
   NODE_VERSION = "18"
   NPM_FLAGS = "--legacy-peer-deps"
-  # Skip Git LFS file downloads (Netlify doesn't need dataset files)
-  GIT_LFS_SKIP_SMUDGE = "1"
-
-# Build plugin to skip Git LFS files
-[[plugins]]
-  package = "./netlify/plugins/skip-git-lfs"
 
 # Redirect all API calls to backend (Render)
 [[redirects]]
