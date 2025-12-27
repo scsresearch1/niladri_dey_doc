@@ -1331,6 +1331,7 @@ app.post('/api/phase2/run-algorithms', async (req, res) => {
     const preCalculatedData = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
     
     // Filter by requested dates if provided
+    // Phase 2 structure: results.metricName[date].metrics
     if (dates && Array.isArray(dates) && dates.length > 0) {
       const filteredResults = {
         averagePredictedLoad: {},
@@ -1340,22 +1341,14 @@ app.post('/api/phase2/run-algorithms', async (req, res) => {
         averageConsolidationEfficiency: {}
       };
       
-      Object.keys(preCalculatedData.results.averagePredictedLoad).forEach(algoName => {
-        filteredResults.averagePredictedLoad[algoName] = {};
-        filteredResults.averagePheromoneLevel[algoName] = {};
-        filteredResults.averageLoadVariance[algoName] = {};
-        filteredResults.averageMigrationCount[algoName] = {};
-        filteredResults.averageConsolidationEfficiency[algoName] = {};
-        
-        dates.forEach(date => {
-          if (preCalculatedData.results.averagePredictedLoad[algoName][date] !== undefined) {
-            filteredResults.averagePredictedLoad[algoName][date] = preCalculatedData.results.averagePredictedLoad[algoName][date];
-            filteredResults.averagePheromoneLevel[algoName][date] = preCalculatedData.results.averagePheromoneLevel[algoName][date];
-            filteredResults.averageLoadVariance[algoName][date] = preCalculatedData.results.averageLoadVariance[algoName][date];
-            filteredResults.averageMigrationCount[algoName][date] = preCalculatedData.results.averageMigrationCount[algoName][date];
-            filteredResults.averageConsolidationEfficiency[algoName][date] = preCalculatedData.results.averageConsolidationEfficiency[algoName][date];
-          }
-        });
+      dates.forEach(date => {
+        if (preCalculatedData.results.averagePredictedLoad[date]) {
+          filteredResults.averagePredictedLoad[date] = preCalculatedData.results.averagePredictedLoad[date].metrics || 0;
+          filteredResults.averagePheromoneLevel[date] = preCalculatedData.results.averagePheromoneLevel[date].metrics || 0;
+          filteredResults.averageLoadVariance[date] = preCalculatedData.results.averageLoadVariance[date].metrics || 0;
+          filteredResults.averageMigrationCount[date] = preCalculatedData.results.averageMigrationCount[date].metrics || 0;
+          filteredResults.averageConsolidationEfficiency[date] = preCalculatedData.results.averageConsolidationEfficiency[date].metrics || 0;
+        }
       });
       
       res.json({
@@ -1366,9 +1359,26 @@ app.post('/api/phase2/run-algorithms', async (req, res) => {
         generatedAt: preCalculatedData.generatedAt
       });
     } else {
+      // Transform structure to match frontend expectations
+      const transformedResults = {
+        averagePredictedLoad: {},
+        averagePheromoneLevel: {},
+        averageLoadVariance: {},
+        averageMigrationCount: {},
+        averageConsolidationEfficiency: {}
+      };
+      
+      Object.keys(preCalculatedData.results.averagePredictedLoad).forEach(date => {
+        transformedResults.averagePredictedLoad[date] = preCalculatedData.results.averagePredictedLoad[date].metrics || 0;
+        transformedResults.averagePheromoneLevel[date] = preCalculatedData.results.averagePheromoneLevel[date].metrics || 0;
+        transformedResults.averageLoadVariance[date] = preCalculatedData.results.averageLoadVariance[date].metrics || 0;
+        transformedResults.averageMigrationCount[date] = preCalculatedData.results.averageMigrationCount[date].metrics || 0;
+        transformedResults.averageConsolidationEfficiency[date] = preCalculatedData.results.averageConsolidationEfficiency[date].metrics || 0;
+      });
+      
       res.json({
         success: true,
-        results: preCalculatedData.results,
+        results: transformedResults,
         algorithms: preCalculatedData.algorithms,
         dates: preCalculatedData.dates,
         generatedAt: preCalculatedData.generatedAt
@@ -1452,6 +1462,8 @@ app.post('/api/phase3/run-algorithms', async (req, res) => {
     const preCalculatedData = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
     
     // Filter by requested dates if provided
+    // Phase 3 structure: results.metricName[date] = {} (empty objects)
+    // Need to check actual structure from orchestrator
     if (dates && Array.isArray(dates) && dates.length > 0) {
       const filteredResults = {
         averageTaskCompletionTime: {},
@@ -1461,22 +1473,13 @@ app.post('/api/phase3/run-algorithms', async (req, res) => {
         averageSLACompliance: {}
       };
       
-      Object.keys(preCalculatedData.results.averageTaskCompletionTime).forEach(algoName => {
-        filteredResults.averageTaskCompletionTime[algoName] = {};
-        filteredResults.averageResourceUtilization[algoName] = {};
-        filteredResults.averageLoadBalanceScore[algoName] = {};
-        filteredResults.averageMigrationOverhead[algoName] = {};
-        filteredResults.averageSLACompliance[algoName] = {};
-        
-        dates.forEach(date => {
-          if (preCalculatedData.results.averageTaskCompletionTime[algoName][date] !== undefined) {
-            filteredResults.averageTaskCompletionTime[algoName][date] = preCalculatedData.results.averageTaskCompletionTime[algoName][date];
-            filteredResults.averageResourceUtilization[algoName][date] = preCalculatedData.results.averageResourceUtilization[algoName][date];
-            filteredResults.averageLoadBalanceScore[algoName][date] = preCalculatedData.results.averageLoadBalanceScore[algoName][date];
-            filteredResults.averageMigrationOverhead[algoName][date] = preCalculatedData.results.averageMigrationOverhead[algoName][date];
-            filteredResults.averageSLACompliance[algoName][date] = preCalculatedData.results.averageSLACompliance[algoName][date];
-          }
-        });
+      dates.forEach(date => {
+        // Phase 3 results may be empty, return empty objects for now
+        filteredResults.averageTaskCompletionTime[date] = preCalculatedData.results.averageTaskCompletionTime[date] || {};
+        filteredResults.averageResourceUtilization[date] = preCalculatedData.results.averageResourceUtilization[date] || {};
+        filteredResults.averageLoadBalanceScore[date] = preCalculatedData.results.averageLoadBalanceScore[date] || {};
+        filteredResults.averageMigrationOverhead[date] = preCalculatedData.results.averageMigrationOverhead[date] || {};
+        filteredResults.averageSLACompliance[date] = preCalculatedData.results.averageSLACompliance[date] || {};
       });
       
       res.json({
