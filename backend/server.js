@@ -4,8 +4,21 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
-// Import dataset downloader
-const DatasetDownloader = require('./utils/downloadDatasets');
+// Import dataset downloader (with error handling)
+let DatasetDownloader;
+try {
+  DatasetDownloader = require('./utils/downloadDatasets');
+} catch (error) {
+  console.warn('⚠️  Could not load dataset downloader:', error.message);
+  // Create a dummy class to prevent crashes
+  DatasetDownloader = class {
+    constructor() {}
+    async ensureDatasetsExist() {
+      console.warn('⚠️  Dataset downloader not available');
+      return false;
+    }
+  };
+}
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -1608,20 +1621,26 @@ app.get('/api/phase4/algorithms', (req, res) => {
 // Initialize server with dataset check
 async function startServer() {
   // Check and download datasets if needed (non-blocking)
-  const downloader = new DatasetDownloader();
-  downloader.ensureDatasetsExist()
-    .then((success) => {
-      if (success) {
-        console.log('✅ Dataset check completed successfully');
-      } else {
-        console.warn('⚠️  Dataset check completed with warnings. Server will start anyway.');
-        console.warn('⚠️  Some features may not work until datasets are available.');
-      }
-    })
-    .catch((error) => {
-      console.error('❌ Error during dataset check:', error.message);
-      console.warn('⚠️  Server will start anyway, but datasets may not be available.');
-    });
+  // Wrap in try-catch to prevent server crash if module fails to load
+  try {
+    const downloader = new DatasetDownloader();
+    downloader.ensureDatasetsExist()
+      .then((success) => {
+        if (success) {
+          console.log('✅ Dataset check completed successfully');
+        } else {
+          console.warn('⚠️  Dataset check completed with warnings. Server will start anyway.');
+          console.warn('⚠️  Some features may not work until datasets are available.');
+        }
+      })
+      .catch((error) => {
+        console.error('❌ Error during dataset check:', error.message);
+        console.warn('⚠️  Server will start anyway, but datasets may not be available.');
+      });
+  } catch (error) {
+    console.error('❌ Failed to initialize dataset downloader:', error.message);
+    console.warn('⚠️  Server will start anyway. Datasets may need to be uploaded manually.');
+  }
 
   // Start server immediately (don't wait for dataset download)
   app.listen(PORT, () => {

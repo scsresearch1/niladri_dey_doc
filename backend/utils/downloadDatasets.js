@@ -3,7 +3,6 @@ const path = require('path');
 const https = require('https');
 const http = require('http');
 const { promisify } = require('util');
-const { pipeline } = require('stream/promises');
 const { exec } = require('child_process');
 const execAsync = promisify(exec);
 
