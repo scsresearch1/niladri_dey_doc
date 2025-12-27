@@ -37,16 +37,27 @@ if (process.env.FRONTEND_URL) {
   allowedOrigins.push(process.env.FRONTEND_URL);
 }
 
+// Log allowed origins for debugging
+console.log('CORS Allowed Origins:', allowedOrigins);
+
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('CORS: Allowing request with no origin');
+      return callback(null, true);
+    }
     
-    // Allow if origin is in allowed list or if FRONTEND_URL is not set (development)
-    if (allowedOrigins.indexOf(origin) !== -1 || !process.env.FRONTEND_URL) {
+    // Log incoming origin for debugging
+    console.log(`CORS: Checking origin: ${origin}`);
+    
+    // Check if origin is in allowed list
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log(`CORS: Allowing origin: ${origin}`);
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      console.log(`CORS: Blocking origin: ${origin} (not in allowed list)`);
+      callback(new Error(`Not allowed by CORS. Origin: ${origin}, Allowed: ${allowedOrigins.join(', ')}`));
     }
   },
   credentials: true,
