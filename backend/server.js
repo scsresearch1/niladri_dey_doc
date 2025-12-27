@@ -1307,84 +1307,75 @@ app.get('/api/health', (req, res) => {
 
 // API endpoint to run Phase 2 algorithms and get results
 app.post('/api/phase2/run-algorithms', async (req, res) => {
+  // Set CORS headers immediately
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.indexOf(origin) !== -1) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  
   try {
-    // Check if dataset directory exists first
-    const datasetPath = path.join(__dirname, 'dataset', 'planetlab');
-    if (!fs.existsSync(datasetPath)) {
-      return res.status(404).json({ 
-        error: 'Dataset directory not found',
-        message: 'Datasets are missing on the server. Please upload datasets to backend/dataset/planetlab/ on Render.',
-        path: datasetPath
-      });
-    }
-
-    const { dates, options } = req.body;
+    const { dates } = req.body;
     
-    // Default dates - ALL dates by default
-    const defaultDates = [
-      '20110303', '20110306', '20110309', '20110322', '20110325',
-      '20110403', '20110409', '20110411', '20110412', '20110420'
-    ];
+    // Load pre-calculated results
+    const resultsPath = path.join(__dirname, 'results', 'phase2-results.json');
     
-    // Process ALL dates by default - NO LIMITATIONS
-    const datesToProcess = dates || defaultDates;
-    
-    // Verify requested dates exist
-    const existingDates = fs.readdirSync(datasetPath).filter(item => {
-      const itemPath = path.join(datasetPath, item);
-      return fs.statSync(itemPath).isDirectory();
-    });
-    
-    const missingDates = datesToProcess.filter(date => !existingDates.includes(date));
-    if (missingDates.length > 0) {
+    if (!fs.existsSync(resultsPath)) {
       return res.status(404).json({
-        error: 'Some dataset dates not found',
-        message: `The following dates are missing: ${missingDates.join(', ')}`,
-        missingDates: missingDates,
-        availableDates: existingDates.sort()
+        success: false,
+        error: 'Pre-calculated results not found',
+        message: 'Results file missing. Please run precalculation script.'
       });
     }
     
-    console.log(`Phase 2: Processing ${datesToProcess.length} dates: ${datesToProcess.join(', ')}`);
+    const preCalculatedData = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
     
-    const orchestrator = new Phase2Orchestrator();
-    
-    // Run all Phase 2 algorithms (multi-threaded)
-    const results = await orchestrator.runAllPhase2Algorithms(datesToProcess, options || {});
-    
-    // Format results for frontend
-    const formattedResults = {
-      averagePredictedLoad: {},
-      averagePheromoneLevel: {},
-      totalComputeLoad: {},
-      totalMemoryLoad: {},
-      totalStorageLoad: {},
-      totalNetworkLoad: {},
-      totalVMs: {}
-    };
-    
-    // Organize results by metric
-    Object.keys(results).forEach(date => {
-      const result = results[date];
-      if (result.metrics) {
-        formattedResults.averagePredictedLoad[date] = result.metrics.averagePredictedLoad;
-        formattedResults.averagePheromoneLevel[date] = result.metrics.averagePheromoneLevel;
-        formattedResults.totalComputeLoad[date] = result.metrics.totalComputeLoad;
-        formattedResults.totalMemoryLoad[date] = result.metrics.totalMemoryLoad;
-        formattedResults.totalStorageLoad[date] = result.metrics.totalStorageLoad;
-        formattedResults.totalNetworkLoad[date] = result.metrics.totalNetworkLoad;
-        formattedResults.totalVMs[date] = result.metrics.totalVMs;
-      }
-    });
-    
-    res.json({
-      success: true,
-      results: formattedResults,
-      detailedResults: results,
-      dates: datesToProcess
-    });
+    // Filter by requested dates if provided
+    if (dates && Array.isArray(dates) && dates.length > 0) {
+      const filteredResults = {
+        averagePredictedLoad: {},
+        averagePheromoneLevel: {},
+        averageLoadVariance: {},
+        averageMigrationCount: {},
+        averageConsolidationEfficiency: {}
+      };
+      
+      Object.keys(preCalculatedData.results.averagePredictedLoad).forEach(algoName => {
+        filteredResults.averagePredictedLoad[algoName] = {};
+        filteredResults.averagePheromoneLevel[algoName] = {};
+        filteredResults.averageLoadVariance[algoName] = {};
+        filteredResults.averageMigrationCount[algoName] = {};
+        filteredResults.averageConsolidationEfficiency[algoName] = {};
+        
+        dates.forEach(date => {
+          if (preCalculatedData.results.averagePredictedLoad[algoName][date] !== undefined) {
+            filteredResults.averagePredictedLoad[algoName][date] = preCalculatedData.results.averagePredictedLoad[algoName][date];
+            filteredResults.averagePheromoneLevel[algoName][date] = preCalculatedData.results.averagePheromoneLevel[algoName][date];
+            filteredResults.averageLoadVariance[algoName][date] = preCalculatedData.results.averageLoadVariance[algoName][date];
+            filteredResults.averageMigrationCount[algoName][date] = preCalculatedData.results.averageMigrationCount[algoName][date];
+            filteredResults.averageConsolidationEfficiency[algoName][date] = preCalculatedData.results.averageConsolidationEfficiency[algoName][date];
+          }
+        });
+      });
+      
+      res.json({
+        success: true,
+        results: filteredResults,
+        algorithms: preCalculatedData.algorithms,
+        dates: dates,
+        generatedAt: preCalculatedData.generatedAt
+      });
+    } else {
+      res.json({
+        success: true,
+        results: preCalculatedData.results,
+        algorithms: preCalculatedData.algorithms,
+        dates: preCalculatedData.dates,
+        generatedAt: preCalculatedData.generatedAt
+      });
+    }
   } catch (error) {
-    console.error('Error running Phase 2 algorithms:', error);
+    console.error('Error loading pre-calculated results:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -1437,86 +1428,75 @@ app.get('/api/phase2/algorithms', (req, res) => {
 
 // API endpoint to run Phase 3 algorithms and get results
 app.post('/api/phase3/run-algorithms', async (req, res) => {
+  // Set CORS headers immediately
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.indexOf(origin) !== -1) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  
   try {
-    // Check if dataset directory exists first
-    const datasetPath = path.join(__dirname, 'dataset', 'planetlab');
-    if (!fs.existsSync(datasetPath)) {
-      return res.status(404).json({ 
-        error: 'Dataset directory not found',
-        message: 'Datasets are missing on the server. Please upload datasets to backend/dataset/planetlab/ on Render.',
-        path: datasetPath
-      });
-    }
-
-    const { dates, options } = req.body;
+    const { dates } = req.body;
     
-    // Default dates - ALL dates by default
-    const defaultDates = [
-      '20110303', '20110306', '20110309', '20110322', '20110325',
-      '20110403', '20110409', '20110411', '20110412', '20110420'
-    ];
+    // Load pre-calculated results
+    const resultsPath = path.join(__dirname, 'results', 'phase3-results.json');
     
-    // Process ALL dates by default - NO LIMITATIONS
-    const datesToProcess = dates || defaultDates;
-    
-    // Verify requested dates exist
-    const existingDates = fs.readdirSync(datasetPath).filter(item => {
-      const itemPath = path.join(datasetPath, item);
-      return fs.statSync(itemPath).isDirectory();
-    });
-    
-    const missingDates = datesToProcess.filter(date => !existingDates.includes(date));
-    if (missingDates.length > 0) {
+    if (!fs.existsSync(resultsPath)) {
       return res.status(404).json({
-        error: 'Some dataset dates not found',
-        message: `The following dates are missing: ${missingDates.join(', ')}`,
-        missingDates: missingDates,
-        availableDates: existingDates.sort()
+        success: false,
+        error: 'Pre-calculated results not found',
+        message: 'Results file missing. Please run precalculation script.'
       });
     }
     
-    console.log(`Phase 3: Processing ${datesToProcess.length} dates: ${datesToProcess.join(', ')}`);
+    const preCalculatedData = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
     
-    const orchestrator = new Phase3Orchestrator();
-    
-    // Run all Phase 3 algorithms (multi-threaded)
-    const results = await orchestrator.runAllPhase3Algorithms(datesToProcess, options || {});
-    
-    // Format results for frontend
-    const formattedResults = {
-      loadPercentage: {},
-      loadedVMs: {},
-      balancedPercentage: {},
-      systemState: {},
-      totalMigrations: {},
-      totalVMs: {},
-      localThreshold: {},
-      globalThreshold: {}
-    };
-    
-    // Organize results by metric
-    Object.keys(results).forEach(date => {
-      const result = results[date];
-      if (result.metrics) {
-        formattedResults.loadPercentage[date] = result.metrics.loadPercentage;
-        formattedResults.loadedVMs[date] = result.metrics.loadedVMs;
-        formattedResults.balancedPercentage[date] = result.metrics.balancedPercentage;
-        formattedResults.systemState[date] = result.metrics.systemState;
-        formattedResults.totalMigrations[date] = result.metrics.totalMigrations;
-        formattedResults.totalVMs[date] = result.metrics.totalVMs;
-        formattedResults.localThreshold[date] = result.metrics.localThreshold;
-        formattedResults.globalThreshold[date] = result.metrics.globalThreshold;
-      }
-    });
-    
-    res.json({
-      success: true,
-      results: formattedResults,
-      detailedResults: results,
-      dates: datesToProcess
-    });
+    // Filter by requested dates if provided
+    if (dates && Array.isArray(dates) && dates.length > 0) {
+      const filteredResults = {
+        averageTaskCompletionTime: {},
+        averageResourceUtilization: {},
+        averageLoadBalanceScore: {},
+        averageMigrationOverhead: {},
+        averageSLACompliance: {}
+      };
+      
+      Object.keys(preCalculatedData.results.averageTaskCompletionTime).forEach(algoName => {
+        filteredResults.averageTaskCompletionTime[algoName] = {};
+        filteredResults.averageResourceUtilization[algoName] = {};
+        filteredResults.averageLoadBalanceScore[algoName] = {};
+        filteredResults.averageMigrationOverhead[algoName] = {};
+        filteredResults.averageSLACompliance[algoName] = {};
+        
+        dates.forEach(date => {
+          if (preCalculatedData.results.averageTaskCompletionTime[algoName][date] !== undefined) {
+            filteredResults.averageTaskCompletionTime[algoName][date] = preCalculatedData.results.averageTaskCompletionTime[algoName][date];
+            filteredResults.averageResourceUtilization[algoName][date] = preCalculatedData.results.averageResourceUtilization[algoName][date];
+            filteredResults.averageLoadBalanceScore[algoName][date] = preCalculatedData.results.averageLoadBalanceScore[algoName][date];
+            filteredResults.averageMigrationOverhead[algoName][date] = preCalculatedData.results.averageMigrationOverhead[algoName][date];
+            filteredResults.averageSLACompliance[algoName][date] = preCalculatedData.results.averageSLACompliance[algoName][date];
+          }
+        });
+      });
+      
+      res.json({
+        success: true,
+        results: filteredResults,
+        algorithms: preCalculatedData.algorithms,
+        dates: dates,
+        generatedAt: preCalculatedData.generatedAt
+      });
+    } else {
+      res.json({
+        success: true,
+        results: preCalculatedData.results,
+        algorithms: preCalculatedData.algorithms,
+        dates: preCalculatedData.dates,
+        generatedAt: preCalculatedData.generatedAt
+      });
+    }
   } catch (error) {
-    console.error('Error running Phase 3 algorithms:', error);
+    console.error('Error loading pre-calculated results:', error);
     res.status(500).json({
       success: false,
       error: error.message
