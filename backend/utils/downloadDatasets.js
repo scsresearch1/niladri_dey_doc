@@ -41,7 +41,7 @@ class DatasetDownloader {
   }
 
   /**
-   * Download file from URL
+   * Download file from URL (supports Dropbox, Google Drive, and direct URLs)
    */
   async downloadFile(url, destination, redirectCount = 0) {
     // Prevent infinite redirect loops
@@ -59,12 +59,25 @@ class DatasetDownloader {
       let downloadedBytes = 0;
       let totalBytes = 0;
 
-      // Add User-Agent header to help with Google Drive redirects
+      // Add User-Agent header
       const options = {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
       };
+
+      // Dropbox: Ensure dl=1 for direct download
+      if (url.includes('dropbox.com')) {
+        // Handle both old format (s/...) and new format (scl/fi/...)
+        if (url.includes('dl=0')) {
+          url = url.replace('dl=0', 'dl=1');
+          console.log(`Updated Dropbox URL for direct download: ${url}`);
+        } else if (!url.includes('dl=')) {
+          // Add dl=1 if not present
+          url += (url.includes('?') ? '&' : '?') + 'dl=1';
+          console.log(`Added dl=1 parameter to Dropbox URL: ${url}`);
+        }
+      }
 
       const req = protocol.get(url, options, (response) => {
         // Handle redirects (Google Drive uses 301, 302, 303, 307, 308)
@@ -84,42 +97,26 @@ class DatasetDownloader {
 
         // Check content type - Google Drive might return HTML instead of file
         const contentType = response.headers['content-type'] || '';
-        if (contentType.includes('text/html')) {
-          // Google Drive virus scan warning - need to extract download link from HTML
-          console.log('Google Drive returned HTML (virus scan warning). Extracting download link...');
-          let htmlData = '';
-          
-          response.on('data', (chunk) => {
-            htmlData += chunk.toString();
-          });
-          
-          response.on('end', () => {
+        if (contentType.includes('text/html') || url.includes('drive.usercontent.google.com')) {
+            // Google Drive virus scan warning - suggest using Dropbox instead
+            console.log('Google Drive returned HTML (virus scan warning).');
+            console.log('⚠️  Recommendation: Use Dropbox for more reliable downloads.');
+            console.log('⚠️  Dropbox direct download links work without virus scan warnings.');
             file.close();
             if (fs.existsSync(destination)) {
               fs.unlinkSync(destination);
             }
-            
-            // Try to extract download link from HTML
-            // Google Drive warning page has a form with action="/uc?export=download&id=..."
-            const downloadMatch = htmlData.match(/action="([^"]*uc\?export=download[^"]*)"/i) ||
-                                  htmlData.match(/href="([^"]*uc\?export=download[^"]*)"/i) ||
-                                  htmlData.match(/\/uc\?export=download[^"'\s]*/i);
-            
-            if (downloadMatch) {
-              let downloadUrl = downloadMatch[1] || downloadMatch[0];
-              // Make absolute URL if relative
-              if (downloadUrl.startsWith('/')) {
-                downloadUrl = 'https://drive.google.com' + downloadUrl;
-              } else if (!downloadUrl.startsWith('http')) {
-                downloadUrl = 'https://drive.google.com/' + downloadUrl;
-              }
-              console.log(`Found download link in HTML: ${downloadUrl}`);
-              return this.downloadFile(downloadUrl, destination, redirectCount + 1).then(resolve).catch(reject);
-            } else {
-              reject(new Error('Google Drive returned HTML warning page but could not extract download link. File may be too large or require manual download.'));
+            reject(new Error('Google Drive virus scan warning prevents automatic download. Please use Dropbox or manually download the file.'));
+            return;
+          } else {
+            // Other HTML responses
+            file.close();
+            if (fs.existsSync(destination)) {
+              fs.unlinkSync(destination);
             }
-          });
-          return;
+            reject(new Error('Server returned HTML instead of file. Check download URL.'));
+            return;
+          }
         }
 
         if (response.statusCode !== 200) {
