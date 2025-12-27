@@ -62,10 +62,42 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Type'],
+  maxAge: 86400 // 24 hours
+}));
+
+// Explicitly handle OPTIONS requests for all routes
+app.options('*', cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Global error handler to ensure CORS headers are always included
+app.use((err, req, res, next) => {
+  // Set CORS headers even on errors
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.indexOf(origin) !== -1) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  
+  if (err.message && err.message.includes('CORS')) {
+    return res.status(403).json({ error: err.message });
+  }
+  
+  next(err);
+});
 
 // API Routes
 app.get('/api/phases', (req, res) => {
