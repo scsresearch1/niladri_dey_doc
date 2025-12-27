@@ -1462,9 +1462,17 @@ app.post('/api/phase3/run-algorithms', async (req, res) => {
     const preCalculatedData = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
     
     // Filter by requested dates if provided
-    // Phase 3 structure: results.metricName[algorithmName][date] = value
+    // Phase 3 structure: results.metricName[date] = value (flat structure)
     if (dates && Array.isArray(dates) && dates.length > 0) {
       const filteredResults = {
+        totalVMs: {},
+        loadedVMs: {},
+        loadPercentage: {},
+        balancedPercentage: {},
+        systemState: {},
+        totalMigrations: {},
+        localThreshold: {},
+        globalThreshold: {},
         averageTaskCompletionTime: {},
         averageResourceUtilization: {},
         averageLoadBalanceScore: {},
@@ -1472,22 +1480,22 @@ app.post('/api/phase3/run-algorithms', async (req, res) => {
         averageSLACompliance: {}
       };
       
-      Object.keys(preCalculatedData.results.averageTaskCompletionTime).forEach(algoName => {
-        filteredResults.averageTaskCompletionTime[algoName] = {};
-        filteredResults.averageResourceUtilization[algoName] = {};
-        filteredResults.averageLoadBalanceScore[algoName] = {};
-        filteredResults.averageMigrationOverhead[algoName] = {};
-        filteredResults.averageSLACompliance[algoName] = {};
-        
-        dates.forEach(date => {
-          if (preCalculatedData.results.averageTaskCompletionTime[algoName][date] !== undefined) {
-            filteredResults.averageTaskCompletionTime[algoName][date] = preCalculatedData.results.averageTaskCompletionTime[algoName][date];
-            filteredResults.averageResourceUtilization[algoName][date] = preCalculatedData.results.averageResourceUtilization[algoName][date];
-            filteredResults.averageLoadBalanceScore[algoName][date] = preCalculatedData.results.averageLoadBalanceScore[algoName][date];
-            filteredResults.averageMigrationOverhead[algoName][date] = preCalculatedData.results.averageMigrationOverhead[algoName][date];
-            filteredResults.averageSLACompliance[algoName][date] = preCalculatedData.results.averageSLACompliance[algoName][date];
-          }
-        });
+      dates.forEach(date => {
+        if (preCalculatedData.results.totalVMs[date] !== undefined) {
+          filteredResults.totalVMs[date] = preCalculatedData.results.totalVMs[date];
+          filteredResults.loadedVMs[date] = preCalculatedData.results.loadedVMs[date];
+          filteredResults.loadPercentage[date] = preCalculatedData.results.loadPercentage[date];
+          filteredResults.balancedPercentage[date] = preCalculatedData.results.balancedPercentage[date];
+          filteredResults.systemState[date] = preCalculatedData.results.systemState[date];
+          filteredResults.totalMigrations[date] = preCalculatedData.results.totalMigrations[date];
+          filteredResults.localThreshold[date] = preCalculatedData.results.localThreshold[date];
+          filteredResults.globalThreshold[date] = preCalculatedData.results.globalThreshold[date];
+          filteredResults.averageTaskCompletionTime[date] = preCalculatedData.results.averageTaskCompletionTime[date];
+          filteredResults.averageResourceUtilization[date] = preCalculatedData.results.averageResourceUtilization[date];
+          filteredResults.averageLoadBalanceScore[date] = preCalculatedData.results.averageLoadBalanceScore[date];
+          filteredResults.averageMigrationOverhead[date] = preCalculatedData.results.averageMigrationOverhead[date];
+          filteredResults.averageSLACompliance[date] = preCalculatedData.results.averageSLACompliance[date];
+        }
       });
       
       res.json({

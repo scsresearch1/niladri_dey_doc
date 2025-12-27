@@ -148,9 +148,19 @@ async function precalculatePhase3() {
     const orchestrator = new Phase3Orchestrator();
     const results = await orchestrator.runAllPhase3Algorithms(allDates, {});
     
-    // Format results (same format as endpoint)
+    // Format results to match frontend expectations
     // Results structure: results[date] = { metrics: {...}, algorithms: {...} }
+    // Frontend expects: results.metricName[date] = value
     const formattedResults = {
+      totalVMs: {},
+      loadedVMs: {},
+      loadPercentage: {},
+      balancedPercentage: {},
+      systemState: {},
+      totalMigrations: {},
+      localThreshold: {},
+      globalThreshold: {},
+      // Also include derived metrics
       averageTaskCompletionTime: {},
       averageResourceUtilization: {},
       averageLoadBalanceScore: {},
@@ -158,52 +168,55 @@ async function precalculatePhase3() {
       averageSLACompliance: {}
     };
     
-    // Extract algorithm name (should be TVPLCVPSOLB for Phase 3)
-    const algoName = 'TVPLCVPSOLB';
-    
-    formattedResults.averageTaskCompletionTime[algoName] = {};
-    formattedResults.averageResourceUtilization[algoName] = {};
-    formattedResults.averageLoadBalanceScore[algoName] = {};
-    formattedResults.averageMigrationOverhead[algoName] = {};
-    formattedResults.averageSLACompliance[algoName] = {};
-    
     // Process each date's results
     Object.keys(results).forEach(date => {
       const result = results[date];
       if (result && result.metrics) {
-        // Calculate derived metrics from Phase 3 results
-        const totalVMs = result.metrics.totalVMs || 0;
-        const loadedVMs = result.metrics.loadedVMs || 0;
-        const totalMigrations = result.metrics.totalMigrations || 0;
-        const balancedPercentage = result.metrics.balancedPercentage || 0;
+        const metrics = result.metrics;
+        
+        // Extract actual metrics from Phase 3 orchestrator
+        formattedResults.totalVMs[date] = metrics.totalVMs || 0;
+        formattedResults.loadedVMs[date] = metrics.loadedVMs || 0;
+        formattedResults.loadPercentage[date] = metrics.loadPercentage || 0;
+        formattedResults.balancedPercentage[date] = metrics.balancedPercentage || 0;
+        formattedResults.systemState[date] = metrics.systemState || 'Unknown';
+        formattedResults.totalMigrations[date] = metrics.totalMigrations || 0;
+        formattedResults.localThreshold[date] = metrics.localThreshold || 0;
+        formattedResults.globalThreshold[date] = metrics.globalThreshold || 0;
+        
+        // Calculate derived metrics
+        const totalVMs = metrics.totalVMs || 0;
+        const totalMigrations = metrics.totalMigrations || 0;
+        const balancedPercentage = metrics.balancedPercentage || 0;
+        const loadPercentage = metrics.loadPercentage || 0;
         
         // Task completion time: estimate based on migrations and VM count
         const avgTaskCompletionTime = totalVMs > 0 ? (totalMigrations * 10 + totalVMs * 0.5) : 0;
         
-        // Resource utilization: based on load percentage
-        const avgResourceUtilization = result.metrics.loadPercentage || 0;
+        // Resource utilization: convert load percentage to decimal
+        const avgResourceUtilization = loadPercentage / 100;
         
-        // Load balance score: based on balanced percentage (0-100 scale)
+        // Load balance score: same as balanced percentage
         const avgLoadBalanceScore = balancedPercentage;
         
         // Migration overhead: based on migration count
         const avgMigrationOverhead = totalMigrations * 2.5;
         
         // SLA compliance: based on balanced state (100% if balanced, 80% if not)
-        const avgSLACompliance = result.metrics.systemState === 'Balanced' ? 100 : 80;
+        const avgSLACompliance = metrics.systemState === 'Balanced' ? 100 : 80;
         
-        formattedResults.averageTaskCompletionTime[algoName][date] = avgTaskCompletionTime;
-        formattedResults.averageResourceUtilization[algoName][date] = avgResourceUtilization;
-        formattedResults.averageLoadBalanceScore[algoName][date] = avgLoadBalanceScore;
-        formattedResults.averageMigrationOverhead[algoName][date] = avgMigrationOverhead;
-        formattedResults.averageSLACompliance[algoName][date] = avgSLACompliance;
+        formattedResults.averageTaskCompletionTime[date] = avgTaskCompletionTime;
+        formattedResults.averageResourceUtilization[date] = avgResourceUtilization;
+        formattedResults.averageLoadBalanceScore[date] = avgLoadBalanceScore;
+        formattedResults.averageMigrationOverhead[date] = avgMigrationOverhead;
+        formattedResults.averageSLACompliance[date] = avgSLACompliance;
       }
     });
     
     const output = {
       success: true,
       results: formattedResults,
-      algorithms: [algoName],
+      algorithms: ['TVPLCVPSOLB'],
       dates: allDates,
       generatedAt: new Date().toISOString()
     };
