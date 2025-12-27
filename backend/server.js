@@ -890,6 +890,16 @@ const Phase4Orchestrator = require('./algorithms/phase4/phase4Orchestrator');
 
 // API endpoint to run algorithms and get results
 app.post('/api/phase1/run-algorithms', async (req, res) => {
+  // Set a longer timeout for this endpoint (5 minutes)
+  req.setTimeout(300000); // 5 minutes
+  
+  // Set CORS headers immediately
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.indexOf(origin) !== -1) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  
   try {
     const { dates, sampleDates } = req.body;
     
@@ -904,14 +914,14 @@ app.post('/api/phase1/run-algorithms', async (req, res) => {
       });
     }
     
-    // Default dates - ALL dates by default
+    // Default dates - use only requested dates or first 3 for quick test
     const defaultDates = [
       '20110303', '20110306', '20110309', '20110322', '20110325',
       '20110403', '20110409', '20110411', '20110412', '20110420'
     ];
     
-    // Process ALL dates by default - NO LIMITATIONS
-    const datesToProcess = dates || defaultDates;
+    // Use provided dates or default to first 3 for performance
+    const datesToProcess = dates || defaultDates.slice(0, 3);
     
     // Verify requested dates exist
     const existingDates = fs.readdirSync(datasetPath).filter(item => {
@@ -933,8 +943,17 @@ app.post('/api/phase1/run-algorithms', async (req, res) => {
     console.log(`Processing ${datesToProcess.length} dates: ${datesToProcess.join(', ')}`);
     const loadBalancer = new LoadBalancer();
     
-    // Run all algorithms (optimized with sampling)
-    const results = await loadBalancer.runAllAlgorithms(datesToProcess);
+    // Add timeout wrapper
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Algorithm execution timed out after 4 minutes. Please try with fewer dates.'));
+      }, 240000); // 4 minutes timeout
+    });
+    
+    // Run all algorithms with timeout protection
+    const algorithmPromise = loadBalancer.runAllAlgorithms(datesToProcess);
+    
+    const results = await Promise.race([algorithmPromise, timeoutPromise]);
     
     // Format results for frontend
     const formattedResults = {
@@ -974,9 +993,17 @@ app.post('/api/phase1/run-algorithms', async (req, res) => {
     });
   } catch (error) {
     console.error('Error running algorithms:', error);
+    
+    // Ensure CORS headers on error
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.indexOf(origin) !== -1) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+    
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message || 'Unknown error occurred'
     });
   }
 });
