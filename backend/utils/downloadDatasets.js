@@ -82,6 +82,17 @@ class DatasetDownloader {
           return this.downloadFile(fullRedirectUrl, destination, redirectCount + 1).then(resolve).catch(reject);
         }
 
+        // Check content type - Google Drive might return HTML instead of file
+        const contentType = response.headers['content-type'] || '';
+        if (contentType.includes('text/html')) {
+          file.close();
+          if (fs.existsSync(destination)) {
+            fs.unlinkSync(destination);
+          }
+          reject(new Error('Google Drive returned HTML instead of file. File might be too large or sharing settings incorrect.'));
+          return;
+        }
+
         if (response.statusCode !== 200) {
           file.close();
           if (fs.existsSync(destination)) {
@@ -209,6 +220,24 @@ class DatasetDownloader {
 
       // Download ZIP file
       await this.downloadFile(this.downloadUrl, this.zipPath);
+
+      // Verify ZIP file exists and has content
+      const zipStats = fs.statSync(this.zipPath);
+      if (zipStats.size === 0) {
+        throw new Error('Downloaded ZIP file is empty. Check Google Drive sharing settings.');
+      }
+      console.log(`ZIP file size: ${(zipStats.size / 1024 / 1024).toFixed(2)} MB`);
+
+      // Check if file is actually a ZIP (check magic bytes)
+      const zipBuffer = Buffer.alloc(4);
+      const fd = fs.openSync(this.zipPath, 'r');
+      fs.readSync(fd, zipBuffer, 0, 4, 0);
+      fs.closeSync(fd);
+      
+      // ZIP files start with PK (0x50 0x4B)
+      if (zipBuffer[0] !== 0x50 || zipBuffer[1] !== 0x4B) {
+        throw new Error('Downloaded file is not a valid ZIP file. Google Drive may have returned an error page.');
+      }
 
       // Extract ZIP file
       await this.extractZip(this.zipPath, this.datasetPath);
